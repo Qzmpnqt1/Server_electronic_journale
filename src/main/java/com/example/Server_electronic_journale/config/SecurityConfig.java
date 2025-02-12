@@ -45,6 +45,8 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/admin/groups").permitAll()
+                        .requestMatchers("/admin/subjects").permitAll()
                         .requestMatchers("/admin/**").authenticated()
                         .requestMatchers("/student/**").authenticated()
                         .requestMatchers("/teacher/**").authenticated()
