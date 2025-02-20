@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,14 +59,40 @@ public class GradebookService {
             gradebookRepository.save(gradebook);
         }
 
+        // Определяем текущую дату и сессионный период
+        LocalDate today = LocalDate.now();
+        LocalDateTime sessionStart;
+        LocalDateTime sessionEnd;
+        if (today.getMonthValue() == 1 && today.getDayOfMonth() >= 9 && today.getDayOfMonth() <= 31) {
+            // Зимняя сессия
+            sessionStart = LocalDateTime.of(today.getYear(), 1, 9, 0, 0);
+            sessionEnd = LocalDateTime.of(today.getYear(), 1, 31, 23, 59, 59);
+        } else if (today.getMonthValue() == 6 && today.getDayOfMonth() >= 5 && today.getDayOfMonth() <= 30) {
+            // Летняя сессия
+            sessionStart = LocalDateTime.of(today.getYear(), 6, 5, 0, 0);
+            sessionEnd = LocalDateTime.of(today.getYear(), 6, 30, 23, 59, 59);
+        } else {
+            throw new IllegalArgumentException("Оценки могут выставляться только в период сессии: зимняя (9-31 января) или летняя (5-30 июня)");
+        }
+
+        // Проверяем, существует ли уже оценка для данного предмета в текущей сессии
+        List<GradeEntry> existingEntries = gradeEntryRepository
+                .findByGradebookAndSubjectAndDateAssignedBetween(gradebook, subject, sessionStart, sessionEnd);
+        if (!existingEntries.isEmpty()) {
+            throw new IllegalArgumentException("За текущую сессию уже выставлена оценка для данного предмета");
+        }
+
+        // Создаем новую оценку, устанавливаем дату выставления и сохраняем
         GradeEntry gradeEntry = new GradeEntry();
         gradeEntry.setGradebook(gradebook);
         gradeEntry.setSubject(subject);
         gradeEntry.setGrade(grade);
+        gradeEntry.setDateAssigned(LocalDateTime.now());
 
         gradeEntryRepository.save(gradeEntry);
         return gradeEntry;
     }
+
 
     @Transactional(readOnly = true)
     public GradebookDTO getGradebookByStudentEmail(String email) {

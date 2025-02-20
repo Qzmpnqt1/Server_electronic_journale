@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@ToString(exclude = { "gradebook", "subject" })  // Исключаем рекурсивные ссылки
+@ToString(exclude = { "gradebook", "subject" })
 @Entity
 @Builder
 @NoArgsConstructor
@@ -25,7 +25,7 @@ public class GradeEntry {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gradebook_id", nullable = false)
-    @JsonBackReference  // На обратной стороне связи
+    @JsonBackReference
     private Gradebook gradebook;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,7 +34,11 @@ public class GradeEntry {
 
     @Column(nullable = false)
     private int grade;
+
+    @Column(name = "date_assigned", nullable = false)
+    private LocalDateTime dateAssigned;
 }
+
 
 
 
