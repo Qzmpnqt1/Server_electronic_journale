@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,15 +44,18 @@ public class GradebookService {
         Subject subject = subjectRepository.findById(subjectId)
                 .orElseThrow(() -> new IllegalArgumentException("Предмет не найден"));
 
+        // Проверяем, что текущий учитель ведёт этот предмет
         Teacher teacher = teacherService.getCurrentTeacher();
         if (!teacher.getSubjects().contains(subject)) {
             throw new IllegalArgumentException("Вы не преподаете этот предмет");
         }
 
+        // Проверяем, что студент состоит в группе, которая изучает этот предмет
         if (!subject.getGroups().contains(student.getGroup())) {
             throw new IllegalArgumentException("Студент не изучает этот предмет");
         }
 
+        // Ищем gradebook студента
         Gradebook gradebook = student.getGradebook();
         if (gradebook == null) {
             gradebook = new Gradebook();
@@ -59,35 +64,41 @@ public class GradebookService {
             gradebookRepository.save(gradebook);
         }
 
-        // Определяем текущую дату и сессионный период
+        // Ищем, есть ли уже запись GradeEntry для этого предмета
+        GradeEntry gradeEntry = gradeEntryRepository.findByGradebookAndSubject(gradebook, subject)
+                .orElse(null);
+
+        if (gradeEntry == null) {
+            gradeEntry = new GradeEntry();
+            gradeEntry.setGradebook(gradebook);
+            gradeEntry.setSubject(subject);
+        }
+
         LocalDate today = LocalDate.now();
-        LocalDateTime sessionStart;
-        LocalDateTime sessionEnd;
+        LocalDateTime now = LocalDateTime.now();
+
+        // Определяем, зимняя или летняя сессия
         if (today.getMonthValue() == 1 && today.getDayOfMonth() >= 9 && today.getDayOfMonth() <= 31) {
-            // Зимняя сессия
-            sessionStart = LocalDateTime.of(today.getYear(), 1, 9, 0, 0);
-            sessionEnd = LocalDateTime.of(today.getYear(), 1, 31, 23, 59, 59);
+            // Зимняя
+            if (gradeEntry.getWinterGrade() != null) {
+                throw new IllegalArgumentException("Зимняя оценка уже выставлена для данного предмета!");
+            }
+            gradeEntry.setWinterGrade(grade);
+            gradeEntry.setWinterDateAssigned(now);
+
         } else if (today.getMonthValue() == 6 && today.getDayOfMonth() >= 5 && today.getDayOfMonth() <= 30) {
-            // Летняя сессия
-            sessionStart = LocalDateTime.of(today.getYear(), 6, 5, 0, 0);
-            sessionEnd = LocalDateTime.of(today.getYear(), 6, 30, 23, 59, 59);
+            // Летняя
+            if (gradeEntry.getSummerGrade() != null) {
+                throw new IllegalArgumentException("Летняя оценка уже выставлена для данного предмета!");
+            }
+            gradeEntry.setSummerGrade(grade);
+            gradeEntry.setSummerDateAssigned(now);
+
         } else {
-            throw new IllegalArgumentException("Оценки могут выставляться только в период сессии: зимняя (9-31 января) или летняя (5-30 июня)");
+            throw new IllegalArgumentException(
+                    "Оценки можно выставлять только в период сессии: зимняя (9-31 января) или летняя (5-30 июня)."
+            );
         }
-
-        // Проверяем, существует ли уже оценка для данного предмета в текущей сессии
-        List<GradeEntry> existingEntries = gradeEntryRepository
-                .findByGradebookAndSubjectAndDateAssignedBetween(gradebook, subject, sessionStart, sessionEnd);
-        if (!existingEntries.isEmpty()) {
-            throw new IllegalArgumentException("За текущую сессию уже выставлена оценка для данного предмета");
-        }
-
-        // Создаем новую оценку, устанавливаем дату выставления и сохраняем
-        GradeEntry gradeEntry = new GradeEntry();
-        gradeEntry.setGradebook(gradebook);
-        gradeEntry.setSubject(subject);
-        gradeEntry.setGrade(grade);
-        gradeEntry.setDateAssigned(LocalDateTime.now());
 
         gradeEntryRepository.save(gradeEntry);
         return gradeEntry;
@@ -96,24 +107,68 @@ public class GradebookService {
 
     @Transactional(readOnly = true)
     public GradebookDTO getGradebookByStudentEmail(String email) {
-        Gradebook gradebook = gradebookRepository.findByStudent_Email(email)
-                .orElseThrow(() -> new IllegalArgumentException("Зачетка не найдена"));
+        // 1) Ищем студента по email
+        Student student = studentRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Студент не найден по email: " + email));
 
-        List<GradeEntryDTO> gradeEntries = gradebook.getGradeEntries().stream().map(entry -> {
+        // 2) У него должна быть группа
+        Group group = student.getGroup();
+        if (group == null) {
+            throw new IllegalArgumentException("У студента нет группы");
+        }
+
+        // 3) Получаем зачетку
+        Gradebook gradebook = student.getGradebook();
+        if (gradebook == null) {
+            // Если у студента ещё нет зачетки, создаём новую
+            gradebook = new Gradebook();
+            gradebook.setStudent(student);
+            student.setGradebook(gradebook);
+            gradebookRepository.save(gradebook);
+        }
+
+        // 4) Стягиваем все предметы, которые изучает эта группа
+        Set<Subject> groupSubjects = group.getSubjects();
+
+        // 5) Собираем уже существующие GradeEntry в Map<subjectId, GradeEntry>
+        Map<Integer, GradeEntry> subjectToEntry = gradebook.getGradeEntries().stream()
+                .collect(Collectors.toMap(e -> e.getSubject().getSubjectId(), e -> e));
+
+        // 6) Формируем список DTO: для каждого предмета создаём запись
+        List<GradeEntryDTO> finalList = groupSubjects.stream().map(subj -> {
+            // Если у студента уже есть запись для этого предмета
+            GradeEntry entry = subjectToEntry.get(subj.getSubjectId());
+
             GradeEntryDTO dto = new GradeEntryDTO();
-            dto.setEntryId(entry.getEntryId());
-            dto.setGrade(entry.getGrade());
-            dto.setSubjectName(entry.getSubject().getName());
+            dto.setSubjectName(subj.getName());
+
+            if (entry != null) {
+                dto.setEntryId(entry.getEntryId());
+                dto.setWinterGrade(entry.getWinterGrade());
+                dto.setWinterDateAssigned(entry.getWinterDateAssigned());
+                dto.setSummerGrade(entry.getSummerGrade());
+                dto.setSummerDateAssigned(entry.getSummerDateAssigned());
+            } else {
+                // Нет записи -> оценок нет
+                dto.setEntryId(0); // 0 или можно не заполнять
+                dto.setWinterGrade(null);
+                dto.setWinterDateAssigned(null);
+                dto.setSummerGrade(null);
+                dto.setSummerDateAssigned(null);
+            }
+
             return dto;
         }).collect(Collectors.toList());
 
+        // 7) Формируем финальный GradebookDTO
         GradebookDTO gradebookDTO = new GradebookDTO();
         gradebookDTO.setGradebookId(gradebook.getGradebookId());
-        gradebookDTO.setStudentId(gradebook.getStudent().getStudentId());
-        gradebookDTO.setGradeEntries(gradeEntries);
+        gradebookDTO.setStudentId(student.getStudentId());
+        gradebookDTO.setGradeEntries(finalList);
 
         return gradebookDTO;
     }
+
 }
 
 

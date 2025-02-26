@@ -11,17 +11,27 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface GradeEntryRepository extends JpaRepository<GradeEntry, Integer> {
-    // Метод для поиска оценки студента по предмету
-    GradeEntry findByGradebook_StudentAndSubject(Student student, Subject subject);
+    // Метод для поиска оценки по gradebook и subject
+    Optional<GradeEntry> findByGradebookAndSubject(Gradebook gradebook, Subject subject);
 
-    // Новый метод для поиска оценок в указанном временном интервале (текущая сессия)
-    List<GradeEntry> findByGradebookAndSubjectAndDateAssignedBetween(
+    // Запрос по зимней дате
+    List<GradeEntry> findByGradebookAndSubjectAndWinterDateAssignedBetween(
+            Gradebook gradebook,
+            Subject subject,
+            LocalDateTime start,
+            LocalDateTime end
+    );
+
+    // Запрос по летней дате
+    List<GradeEntry> findByGradebookAndSubjectAndSummerDateAssignedBetween(
             Gradebook gradebook,
             Subject subject,
             LocalDateTime start,
             LocalDateTime end
     );
 }
+

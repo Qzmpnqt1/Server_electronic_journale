@@ -6,6 +6,8 @@ import lombok.Data;
 public class GradeEntryRequest {
     private int studentId;
     private int subjectId;
-    private int grade;
+    private int grade; // пользователь отправляет: "Ставлю 4" — сервер сам поймёт, зимняя или летняя
 }
+
+
 

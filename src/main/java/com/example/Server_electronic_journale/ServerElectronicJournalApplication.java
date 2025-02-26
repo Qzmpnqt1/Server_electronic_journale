@@ -9,4 +9,5 @@ public class ServerElectronicJournalApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ServerElectronicJournalApplication.class, args);
 	}
+
 }
