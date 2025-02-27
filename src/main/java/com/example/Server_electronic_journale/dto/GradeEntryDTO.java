@@ -2,7 +2,7 @@ package com.example.Server_electronic_journale.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 public class GradeEntryDTO {
@@ -10,8 +10,8 @@ public class GradeEntryDTO {
     private String subjectName;
 
     private Integer winterGrade;
-    private LocalDateTime winterDateAssigned;
+    private LocalDate winterDateAssigned;
 
     private Integer summerGrade;
-    private LocalDateTime summerDateAssigned;
+    private LocalDate summerDateAssigned;
 }

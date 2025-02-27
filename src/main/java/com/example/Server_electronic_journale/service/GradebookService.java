@@ -75,25 +75,21 @@ public class GradebookService {
         }
 
         LocalDate today = LocalDate.now();
-        LocalDateTime now = LocalDateTime.now();
 
-        // Определяем, зимняя или летняя сессия
         if (today.getMonthValue() == 1 && today.getDayOfMonth() >= 9 && today.getDayOfMonth() <= 31) {
-            // Зимняя
+            // Зимняя сессия
             if (gradeEntry.getWinterGrade() != null) {
                 throw new IllegalArgumentException("Зимняя оценка уже выставлена для данного предмета!");
             }
             gradeEntry.setWinterGrade(grade);
-            gradeEntry.setWinterDateAssigned(now);
-
+            gradeEntry.setWinterDateAssigned(today);
         } else if (today.getMonthValue() == 6 && today.getDayOfMonth() >= 5 && today.getDayOfMonth() <= 30) {
-            // Летняя
+            // Летняя сессия
             if (gradeEntry.getSummerGrade() != null) {
                 throw new IllegalArgumentException("Летняя оценка уже выставлена для данного предмета!");
             }
             gradeEntry.setSummerGrade(grade);
-            gradeEntry.setSummerDateAssigned(now);
-
+            gradeEntry.setSummerDateAssigned(today);
         } else {
             throw new IllegalArgumentException(
                     "Оценки можно выставлять только в период сессии: зимняя (9-31 января) или летняя (5-30 июня)."

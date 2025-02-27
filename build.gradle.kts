@@ -34,6 +34,8 @@ dependencies {
 	compileOnly("org.projectlombok:lombok:1.18.26")
 	annotationProcessor("org.projectlombok:lombok:1.18.26")
 	implementation(kotlin("stdlib-jdk8"))
+
+	implementation ("org.springframework.boot:spring-boot-starter-mail")
 }
 
 tasks.withType<Test> {

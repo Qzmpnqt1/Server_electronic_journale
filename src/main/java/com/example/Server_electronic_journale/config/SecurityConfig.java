@@ -35,25 +35,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(AbstractHttpConfigurer::disable) // Отключаем CSRF (или настройте, если нужно)
+                // Отключаем CSRF
+                .csrf(AbstractHttpConfigurer::disable)
+                // Настройка CORS
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of("*")); // Разрешенные домены
-                    config.setAllowedMethods(List.of("GET", "POST", "DELETE")); // Методы HTTP
-                    config.setAllowedHeaders(List.of("*")); // Заголовки HTTP
+                    config.setAllowedOrigins(List.of("*"));
+                    config.setAllowedMethods(List.of("GET", "POST", "DELETE"));
+                    config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
                     return config;
                 }))
+                // Без сессий — JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Публичные эндпоинты
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/admin/groups").permitAll()
-                        .requestMatchers("/admin/subjects").permitAll()
-                        .requestMatchers("/admin/**").authenticated()
-                        .requestMatchers("/student/**").authenticated()
-                        .requestMatchers("/teacher/**").authenticated()
-                        .anyRequest().permitAll() // Остальные запросы доступны без авторизации
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/").permitAll()
+                        .anyRequest().permitAll()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless сессии
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Добавляем фильтр для JWT
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

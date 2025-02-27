@@ -3,7 +3,7 @@ package com.example.Server_electronic_journale.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -33,12 +33,12 @@ public class GradeEntry {
     @Column(name = "winter_grade")
     private Integer winterGrade; // может быть null, если ещё не выставлена
 
-    @Column(name = "winter_date_assigned", columnDefinition = "DATETIME(0)")
-    private LocalDateTime winterDateAssigned; // дата, когда зимняя оценка была выставлена
+    @Column(name = "winter_date_assigned", columnDefinition = "DATE")
+    private LocalDate winterDateAssigned; // сохраняется только дата
 
     @Column(name = "summer_grade")
     private Integer summerGrade; // может быть null, если ещё не выставлена
 
-    @Column(name = "summer_date_assigned", columnDefinition = "DATETIME(0)")
-    private LocalDateTime summerDateAssigned; // дата, когда летняя оценка была выставлена
+    @Column(name = "summer_date_assigned", columnDefinition = "DATE")
+    private LocalDate summerDateAssigned; // сохраняется только дата
 }
