@@ -2,6 +2,7 @@ package com.example.Server_electronic_journale.service;
 
 import com.example.Server_electronic_journale.dto.GradeEntryDTO;
 import com.example.Server_electronic_journale.dto.GradebookDTO;
+import com.example.Server_electronic_journale.dto.SubjectStatsDTO;
 import com.example.Server_electronic_journale.model.*;
 import com.example.Server_electronic_journale.repository.GradeEntryRepository;
 import com.example.Server_electronic_journale.repository.GradebookRepository;
@@ -13,9 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -165,6 +164,169 @@ public class GradebookService {
         return gradebookDTO;
     }
 
+    @Transactional(readOnly = true)
+    public List<SubjectStatsDTO> getGroupStatsForStudentEmail(String email) {
+        // 1. Находим студента
+        Student student = studentRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Студент не найден по email: " + email));
+
+        // 2. Берём его группу
+        Group group = student.getGroup();
+        if (group == null) {
+            throw new IllegalArgumentException("У студента нет группы");
+        }
+
+        // 3. Все студенты этой группы
+        List<Student> groupStudents = studentRepository.findAllByGroup(group);
+
+        // 4. Предметы, которые изучает группа
+        Set<Subject> subjects = group.getSubjects();
+
+        List<SubjectStatsDTO> result = new ArrayList<>();
+
+        for (Subject subj : subjects) {
+            // Собираем все GradeEntry (зимняя/летняя оценка) для этого предмета по всем студентам группы
+            // Для удобства создадим вспомогательную структуру
+            List<GradeInfo> winterGrades = new ArrayList<>();
+            List<GradeInfo> summerGrades = new ArrayList<>();
+
+            for (Student st : groupStudents) {
+                Gradebook gb = st.getGradebook();
+                if (gb == null) continue;  // если вдруг нет зачётки, пропустим
+
+                // Ищем GradeEntry для данного subject
+                // Можно пройтись в цикле по gb.getGradeEntries(),
+                // или использовать репозиторий GradeEntryRepository.findByGradebookAndSubject(...)
+                GradeEntry entry = gb.getGradeEntries().stream()
+                        .filter(e -> e.getSubject().getSubjectId() == subj.getSubjectId())
+                        .findFirst()
+                        .orElse(null);
+
+                if (entry != null) {
+                    // Если есть зимняя оценка, добавим в winterGrades
+                    if (entry.getWinterGrade() != null) {
+                        winterGrades.add(new GradeInfo(
+                                st.getName() + " " + st.getSurname(), // ФИО (или как-то иначе)
+                                entry.getWinterGrade(),
+                                entry.getWinterDateAssigned() // дата выставления
+                        ));
+                    }
+                    // Аналогично для летней
+                    if (entry.getSummerGrade() != null) {
+                        summerGrades.add(new GradeInfo(
+                                st.getName() + " " + st.getSurname(),
+                                entry.getSummerGrade(),
+                                entry.getSummerDateAssigned()
+                        ));
+                    }
+                }
+            }
+
+            // Теперь вычисляем: лучшая/худшая/средняя для зимней
+            // Лучшая: max по оценке, при равенстве — min по дате
+            // Худшая: min по оценке, при равенстве — min по дате
+            // Средняя: среднее по оценкам
+
+            // Лучшая зимняя
+            GradeInfo bestWinter = winterGrades.stream()
+                    .max(Comparator.comparing(GradeInfo::grade)
+                            .thenComparing(GradeInfo::dateAssigned)) // сначала макс оценка, если одинаково — "последний" ???
+                    // но нам нужна "самая первая выставленная", значит нужно инвертировать сравнение даты
+                    // проще сделать свою логику:
+                    .orElse(null);
+
+            // Однако, если при равенстве оценок нужно именно "раньше выставленная" — надо аккуратно
+            // Смотрите: Comparator.comparing(GradeInfo::grade) DESC,
+            // а потом Comparator.comparing(GradeInfo::dateAssigned) ASC
+            // можно сделать так:
+            GradeInfo bestWinterCorrect = winterGrades.stream()
+                    .sorted((g1, g2) -> {
+                        // Сначала по оценке (убывание)
+                        int cmp = Integer.compare(g2.grade(), g1.grade());
+                        if (cmp != 0) return cmp;
+                        // если оценки одинаковые, то по дате (возрастание)
+                        return g1.dateAssigned().compareTo(g2.dateAssigned());
+                    })
+                    .findFirst()
+                    .orElse(null);
+
+            // То же самое для worst (min по оценке, при равенстве – earliest date):
+            GradeInfo worstWinter = winterGrades.stream()
+                    .sorted((g1, g2) -> {
+                        // Сначала по оценке (возрастание)
+                        int cmp = Integer.compare(g1.grade(), g2.grade());
+                        if (cmp != 0) return cmp;
+                        // если оценки одинаковые, то по дате (возрастание)
+                        return g1.dateAssigned().compareTo(g2.dateAssigned());
+                    })
+                    .findFirst()
+                    .orElse(null);
+
+            // Средняя оценка (double)
+            OptionalDouble averageWinter = winterGrades.stream()
+                    .mapToInt(GradeInfo::grade)
+                    .average();
+
+            // Аналогичные действия для summer
+            GradeInfo bestSummer = summerGrades.stream()
+                    .sorted((g1, g2) -> {
+                        // убывание оценки
+                        int cmp = Integer.compare(g2.grade(), g1.grade());
+                        if (cmp != 0) return cmp;
+                        // при равенстве — самая ранняя дата
+                        return g1.dateAssigned().compareTo(g2.dateAssigned());
+                    })
+                    .findFirst()
+                    .orElse(null);
+
+            GradeInfo worstSummer = summerGrades.stream()
+                    .sorted((g1, g2) -> {
+                        // возрастание оценки
+                        int cmp = Integer.compare(g1.grade(), g2.grade());
+                        if (cmp != 0) return cmp;
+                        return g1.dateAssigned().compareTo(g2.dateAssigned());
+                    })
+                    .findFirst()
+                    .orElse(null);
+
+            OptionalDouble averageSummer = summerGrades.stream()
+                    .mapToInt(GradeInfo::grade)
+                    .average();
+
+            // Сформируем SubjectStatsDTO
+            SubjectStatsDTO dto = new SubjectStatsDTO();
+            dto.setSubjectName(subj.getName());
+
+            // Зимняя
+            if (bestWinter != null) {
+                dto.setBestWinterStudent(bestWinterCorrect.studentName());
+                dto.setBestWinterGrade(bestWinterCorrect.grade());
+            }
+            dto.setAverageWinterGrade(averageWinter.isPresent() ? averageWinter.getAsDouble() : null);
+            if (worstWinter != null) {
+                dto.setWorstWinterStudent(worstWinter.studentName());
+                dto.setWorstWinterGrade(worstWinter.grade());
+            }
+
+            // Летняя
+            if (bestSummer != null) {
+                dto.setBestSummerStudent(bestSummer.studentName());
+                dto.setBestSummerGrade(bestSummer.grade());
+            }
+            dto.setAverageSummerGrade(averageSummer.isPresent() ? averageSummer.getAsDouble() : null);
+            if (worstSummer != null) {
+                dto.setWorstSummerStudent(worstSummer.studentName());
+                dto.setWorstSummerGrade(worstSummer.grade());
+            }
+
+            result.add(dto);
+        }
+
+        return result;
+    }
+
+    // Вспомогательная record/класс для хранения (studentName, grade, dateAssigned)
+    private record GradeInfo(String studentName, int grade, LocalDate dateAssigned) {}
 }
 
 

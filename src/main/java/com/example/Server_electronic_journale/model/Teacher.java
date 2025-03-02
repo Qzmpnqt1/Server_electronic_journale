@@ -46,7 +46,11 @@ public class Teacher implements UserDetails {
     @Column(nullable = false)
     private String role;
 
-    // Добавляем @Builder.Default для инициализации по умолчанию
+    // Добавлено поле для хранения URL фотографии
+    @Setter
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @Builder.Default
     @ManyToMany
     @Setter
@@ -69,23 +73,14 @@ public class Teacher implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    public boolean isEnabled() { return true; }
 }
-

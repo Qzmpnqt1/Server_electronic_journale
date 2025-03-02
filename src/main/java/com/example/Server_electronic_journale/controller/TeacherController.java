@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -110,6 +112,7 @@ public class TeacherController {
             dto.setPatronymic(teacher.getPatronymic());
             dto.setEmail(teacher.getEmail());
             dto.setRole(teacher.getRole());
+            dto.setPhotoUrl(teacher.getPhotoUrl());  // Добавляем в DTO
             dto.setSubjects(teacher.getSubjects().stream().map(subject -> {
                 SubjectResponseDTO subjectDTO = new SubjectResponseDTO();
                 subjectDTO.setSubjectId(subject.getSubjectId());
@@ -117,12 +120,21 @@ public class TeacherController {
                 subjectDTO.setCourse(subject.getCourse());
                 return subjectDTO;
             }).collect(Collectors.toSet()));
-            // Логирование
-            System.out.println("Данные учителя отправлены: " + dto.getEmail());
+
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException e) {
-            System.err.println("Ошибка при получении данных учителя: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        }
+    }
+
+    @PostMapping("/uploadPhoto")
+    public ResponseEntity<?> uploadTeacherPhoto(@RequestParam("photo") MultipartFile photo) {
+        try {
+            String photoUrl = teacherService.savePhotoAndGetUrl(photo);
+            return ResponseEntity.ok(new UploadPhotoResponse(photoUrl));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Ошибка загрузки файла");
         }
     }
 }

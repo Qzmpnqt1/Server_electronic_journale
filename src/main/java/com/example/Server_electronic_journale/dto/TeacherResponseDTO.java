@@ -12,5 +12,6 @@ public class TeacherResponseDTO {
     private String patronymic;
     private String email;
     private String role;
+    private String photoUrl;
     private Set<SubjectResponseDTO> subjects;
 }

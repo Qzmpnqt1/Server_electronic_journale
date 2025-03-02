@@ -7,7 +7,6 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "students")
-@ToString(exclude = { "group", "gradebook" })  // Исключаем рекурсивные ссылки
+@ToString(exclude = {"group", "gradebook"})
 public class Student implements UserDetails {
 
     @Id
@@ -29,7 +28,7 @@ public class Student implements UserDetails {
     @Setter
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "group_id", nullable = false)
-    @JsonBackReference  // На обратной стороне связи
+    @JsonBackReference
     private Group group;
 
     @Setter
@@ -60,10 +59,14 @@ public class Student implements UserDetails {
 
     @OneToOne(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter
-    @JsonManagedReference  // На управляющей стороне связи
+    @JsonManagedReference
     private Gradebook gradebook;
 
-    // Реализация методов UserDetails
+    // Поле для хранения URL фотографии
+    @Setter
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_STUDENT"));
@@ -75,23 +78,11 @@ public class Student implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
+    public boolean isAccountNonExpired() { return true; }
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
+    public boolean isAccountNonLocked() { return true; }
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
+    public boolean isCredentialsNonExpired() { return true; }
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    public boolean isEnabled() { return true; }
 }
-
