@@ -28,7 +28,7 @@ public class TeacherService {
     private final GradeEntryRepository gradeEntryRepository;
 
     // Папка для сохранения фотографий (должна совпадать с настройками ResourceHandler)
-    private final String uploadDir = "D:/uploads/";
+    private final String uploadDir = "C:/uploads/";
 
     private static final Logger logger = LoggerFactory.getLogger(TeacherService.class);
 
@@ -122,7 +122,7 @@ public class TeacherService {
         }
 
         // Формируем URL (совпадает с настройками ResourceHandler в WebMvcConfig)
-        String photoUrl = "http://192.168.0.84:8080/uploads/" + fileName;
+        String photoUrl = "http://192.168.0.93:8080/uploads/" + fileName;
         teacher.setPhotoUrl(photoUrl);
         teacherRepository.save(teacher);
         logger.info("URL фотографии учителя {} обновлен: {}", teacher.getTeacherId(), photoUrl);

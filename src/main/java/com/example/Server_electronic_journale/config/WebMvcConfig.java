@@ -8,8 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Указываем абсолютный путь с префиксом "file:" – здесь пример для D:/uploads/
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:D:/uploads/");
+                .addResourceLocations("file:C:/uploads/");
     }
 }

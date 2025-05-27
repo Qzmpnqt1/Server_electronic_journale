@@ -1,0 +1,35 @@
+[33mcommit b69017962836cb19f2be25f54d6c00c9127a73b3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Sun Mar 2 16:15:43 2025 +0300
+
+    add photo profile student and teacher
+
+[33mcommit c916d54df8408d4b1a28c50bc934d67dbede4166[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Thu Feb 27 17:00:36 2025 +0300
+
+    mail verification
+
+[33mcommit e90382a722878932f40451425a53482a2bba095c[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Wed Feb 26 21:23:27 2025 +0300
+
+    update add grade
+
+[33mcommit 8a68cfb874baa1985c8b03a3e6ecd7e1e1dc1305[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Thu Feb 20 21:21:58 2025 +0300
+
+    update gradeEntry and addGrade
+
+[33mcommit 7764763715c5eb0e6c4774af6db04024832cb54b[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Wed Feb 12 16:48:38 2025 +0300
+
+    fix securityFilterChain
+
+[33mcommit 3b1b3b71a72a85d8d7fa4bcaf7ed5e95dadbad81[m
+Author: Qzmpnqt1 <sgoppen@gmail.com>
+Date:   Wed Feb 12 11:04:46 2025 +0300
+
+    create server

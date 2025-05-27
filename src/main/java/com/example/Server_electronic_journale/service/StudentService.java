@@ -18,8 +18,7 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
 
-    // Абсолютный путь для сохранения фотографий – измените его под вашу систему (например, "D:/uploads/")
-    private final String uploadDir = "D:/uploads/";
+    private final String uploadDir = "C:/uploads/";
 
     private static final Logger logger = LoggerFactory.getLogger(StudentService.class);
 
@@ -91,8 +90,7 @@ public class StudentService {
             throw e;
         }
 
-        // Формируем URL для доступа к файлу (убедитесь, что он соответствует настройкам ResourceHandler)
-        String photoUrl = "http://192.168.0.84:8080/uploads/" + fileName;
+        String photoUrl = "http://192.168.0.93:8080/uploads/" + fileName;
         student.setPhotoUrl(photoUrl);
         studentRepository.save(student);
         logger.info("URL фотографии студента {} обновлен: {}", student.getStudentId(), photoUrl);
